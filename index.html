@@ -1,0 +1,2158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Recolección Web</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+  <style>
+    :root {
+      --rojo-institucional: #e31c33;
+      --rojo-principal: #d80e2f;
+      --rojo-profundo: #cd1426;
+      --rojo-oscuro: #8a1025;
+      --rojo-suave: #fbeaec;
+      --amarillo-institucional: #ffc72c;
+      --azul-ubicacion: #2563eb;
+      --verde-ok: #16a34a;
+
+      --gris-950: #09090b;
+      --gris-900: #111827;
+      --gris-800: #1f2937;
+      --gris-700: #374151;
+      --gris-600: #4b5563;
+      --gris-500: #6b7280;
+      --gris-400: #9ca3af;
+      --gris-300: #d1d5db;
+      --gris-200: #e5e7eb;
+      --gris-100: #f3f4f6;
+      --gris-50: #f9fafb;
+      --blanco: #ffffff;
+
+      --sombra-fuerte: 0 22px 55px rgba(17, 24, 39, 0.30);
+      --sombra-media: 0 12px 28px rgba(17, 24, 39, 0.18);
+      --sombra-suave: 0 8px 20px rgba(17, 24, 39, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      color: var(--gris-900);
+      background: var(--gris-100);
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font-family: inherit;
+    }
+
+    #app {
+      position: relative;
+      width: 100vw;
+      height: 100dvh;
+      overflow: hidden;
+      background: var(--gris-100);
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      background: #e8edf2;
+      z-index: 1;
+    }
+
+    /* =====================================================
+       ENCABEZADO
+       ===================================================== */
+
+    .topbar {
+      position: absolute;
+      top: calc(10px + env(safe-area-inset-top));
+      left: 10px;
+      right: 10px;
+      z-index: 900;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 18px;
+      color: var(--blanco);
+      background: linear-gradient(135deg, var(--rojo-institucional), var(--rojo-profundo));
+      box-shadow: var(--sombra-media);
+    }
+
+    .brand-mini {
+      position: relative;
+      width: 44px;
+      height: 44px;
+      flex: 0 0 44px;
+    }
+
+    .brand-mini .brand-letter {
+      position: absolute;
+      left: 13px;
+      bottom: 0;
+      font-size: 34px;
+      line-height: 1;
+      font-weight: 950;
+      color: var(--blanco);
+      letter-spacing: -4px;
+    }
+
+    .brand-mini .brand-star {
+      position: absolute;
+      color: var(--amarillo-institucional);
+      text-shadow: 0 2px 4px rgba(0,0,0,0.16);
+    }
+
+    .brand-mini .star-a {
+      left: 0;
+      top: 17px;
+      font-size: 13px;
+    }
+
+    .brand-mini .star-b {
+      left: 14px;
+      top: 0;
+      font-size: 30px;
+    }
+
+    .brand-mini .star-c {
+      right: 0;
+      top: 3px;
+      font-size: 16px;
+    }
+
+    .topbar-text {
+      min-width: 0;
+    }
+
+    .topbar-text h1 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.08;
+      font-weight: 950;
+      letter-spacing: -0.2px;
+    }
+
+    .topbar-text p {
+      margin: 3px 0 0 0;
+      font-size: 11px;
+      line-height: 1.25;
+      opacity: 0.94;
+    }
+
+    /* =====================================================
+       BOTONES DEL MAPA
+       ===================================================== */
+
+    .map-tools {
+      position: absolute;
+      right: 10px;
+      top: calc(94px + env(safe-area-inset-top));
+      z-index: 850;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.90);
+      box-shadow: var(--sombra-media);
+      backdrop-filter: blur(12px);
+    }
+
+    .round-btn {
+      width: 46px;
+      height: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      border-radius: 15px;
+      color: var(--rojo-oscuro);
+      background: var(--blanco);
+      box-shadow: 0 6px 16px rgba(17, 24, 39, 0.14);
+      cursor: pointer;
+      font-size: 19px;
+      font-weight: 950;
+    }
+
+    .round-btn.active {
+      color: var(--blanco);
+      background: linear-gradient(135deg, var(--rojo-institucional), var(--rojo-profundo));
+    }
+
+    .loading-badge {
+      position: absolute;
+      left: 50%;
+      top: calc(90px + env(safe-area-inset-top));
+      transform: translateX(-50%);
+      z-index: 840;
+      display: none;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 850;
+      color: #7c2d12;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      box-shadow: var(--sombra-suave);
+      white-space: nowrap;
+    }
+
+    .loading-badge.show {
+      display: block;
+    }
+
+    .status-chip {
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      bottom: calc(14px + env(safe-area-inset-bottom));
+      z-index: 820;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 12px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: var(--sombra-media);
+      border: 1px solid rgba(255,255,255,0.75);
+      backdrop-filter: blur(12px);
+    }
+
+    .status-text {
+      min-width: 0;
+    }
+
+    .status-text strong {
+      display: block;
+      font-size: 13px;
+      color: var(--gris-900);
+    }
+
+    .status-text span {
+      display: block;
+      margin-top: 2px;
+      font-size: 11.5px;
+      color: var(--gris-500);
+      line-height: 1.25;
+    }
+
+    .primary-map-btn {
+      min-height: 44px;
+      padding: 10px 13px;
+      border: 0;
+      border-radius: 14px;
+      cursor: pointer;
+      color: var(--blanco);
+      background: linear-gradient(135deg, var(--rojo-institucional), var(--rojo-profundo));
+      box-shadow: 0 10px 22px rgba(227, 28, 51, 0.28);
+      font-size: 12.5px;
+      font-weight: 900;
+      white-space: nowrap;
+      opacity: 0.55;
+      pointer-events: none;
+    }
+
+    .primary-map-btn.ready {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* =====================================================
+       MAPAS BASE - HOJA INFERIOR
+       ===================================================== */
+
+    .mapbase-backdrop {
+      position: absolute;
+      inset: 0;
+      z-index: 1450;
+      display: none;
+      background: rgba(17, 24, 39, 0.25);
+      backdrop-filter: blur(2px);
+    }
+
+    .mapbase-backdrop.open {
+      display: block;
+    }
+
+    .mapbase-sheet {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1500;
+      display: none;
+      max-height: 72dvh;
+      overflow-y: auto;
+      padding: 0 14px calc(16px + env(safe-area-inset-bottom)) 14px;
+      border-radius: 26px 26px 0 0;
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: 0 -22px 55px rgba(17, 24, 39, 0.30);
+      border: 1px solid rgba(255, 255, 255, 0.78);
+    }
+
+    .mapbase-sheet.open {
+      display: block;
+    }
+
+    .mapbase-handle {
+      width: 46px;
+      height: 5px;
+      margin: 10px auto 10px auto;
+      border-radius: 999px;
+      background: var(--gris-300);
+    }
+
+    .mapbase-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 0 2px 13px 2px;
+      border-bottom: 1px solid var(--gris-200);
+    }
+
+    .mapbase-header h2 {
+      margin: 0;
+      color: var(--gris-900);
+      font-size: 18px;
+      line-height: 1.15;
+      font-weight: 950;
+      letter-spacing: -0.3px;
+    }
+
+    .mapbase-header p {
+      margin: 4px 0 0 0;
+      color: var(--gris-500);
+      font-size: 12.5px;
+      line-height: 1.35;
+    }
+
+    .mapbase-close {
+      width: 38px;
+      height: 38px;
+      flex: 0 0 38px;
+      border: 0;
+      border-radius: 13px;
+      color: var(--rojo-oscuro);
+      background: var(--rojo-suave);
+      cursor: pointer;
+      font-weight: 950;
+      font-size: 18px;
+    }
+
+    .mapbase-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      padding-top: 13px;
+    }
+
+    .mapbase-card {
+      width: 100%;
+      min-height: 72px;
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr) 30px;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 18px;
+      border: 1px solid var(--gris-200);
+      background: #f8fafc;
+      text-align: left;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(17, 24, 39, 0.06);
+    }
+
+    .mapbase-card.active {
+      border-color: rgba(216, 14, 47, 0.42);
+      background: #fff7f8;
+      box-shadow: 0 10px 24px rgba(216, 14, 47, 0.12);
+    }
+
+    .mapbase-icon {
+      width: 42px;
+      height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 15px;
+      color: var(--rojo-principal);
+      background: var(--rojo-suave);
+      font-size: 22px;
+      font-weight: 950;
+    }
+
+    .mapbase-text {
+      display: block;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .mapbase-text strong {
+      display: block;
+      color: var(--gris-900);
+      font-size: 14px;
+      line-height: 1.2;
+      font-weight: 950;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .mapbase-text small {
+      display: block;
+      margin-top: 4px;
+      color: var(--gris-500);
+      font-size: 12px;
+      line-height: 1.25;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .mapbase-check {
+      width: 28px;
+      height: 28px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      color: var(--blanco);
+      background: var(--rojo-principal);
+      font-size: 16px;
+      font-weight: 950;
+    }
+
+    .mapbase-card.active .mapbase-check {
+      display: flex;
+    }
+
+    /* =====================================================
+       MARCADORES
+       ===================================================== */
+
+    .marker-selected {
+      position: relative;
+      width: 38px;
+      height: 38px;
+    }
+
+    .marker-selected-body {
+      position: absolute;
+      left: 5px;
+      top: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 50% 50% 50% 0;
+      background: linear-gradient(135deg, var(--rojo-institucional), var(--rojo-oscuro));
+      border: 3px solid var(--blanco);
+      box-shadow: 0 9px 20px rgba(138, 16, 37, 0.44);
+      transform: rotate(-45deg);
+    }
+
+    .marker-selected-body::after {
+      content: "";
+      position: absolute;
+      left: 8px;
+      top: 8px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--amarillo-institucional);
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.75);
+    }
+
+    .marker-selected-shadow {
+      position: absolute;
+      left: 8px;
+      bottom: 1px;
+      width: 22px;
+      height: 7px;
+      border-radius: 50%;
+      background: rgba(17, 24, 39, 0.28);
+      filter: blur(1px);
+    }
+
+    .marker-user {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--azul-ubicacion);
+      border: 3px solid var(--blanco);
+      box-shadow: 0 0 0 8px rgba(37, 99, 235, 0.18), 0 8px 18px rgba(17, 24, 39, 0.20);
+    }
+
+    .marker-recolectado {
+      position: relative;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--gris-800);
+      border: 3px solid var(--blanco);
+      box-shadow: 0 7px 16px rgba(17, 24, 39, 0.28);
+    }
+
+    .marker-recolectado::after {
+      content: "";
+      position: absolute;
+      left: 5px;
+      top: 5px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--amarillo-institucional);
+    }
+
+    .localidad-label {
+      padding: 4px 8px;
+      border-radius: 999px;
+      color: #111111;
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(17, 24, 39, 0.18);
+      box-shadow: 0 5px 14px rgba(17, 24, 39, 0.14);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.2px;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+
+    .leaflet-tooltip-left.localidad-label::before,
+    .leaflet-tooltip-right.localidad-label::before,
+    .leaflet-tooltip-top.localidad-label::before,
+    .leaflet-tooltip-bottom.localidad-label::before {
+      display: none;
+    }
+
+    .popup-recolectado {
+      width: 230px;
+      font-size: 12px;
+    }
+
+    .popup-recolectado h3 {
+      margin: 0 0 7px 0;
+      color: var(--rojo-oscuro);
+      font-size: 14px;
+    }
+
+    .popup-recolectado p {
+      margin: 3px 0;
+      line-height: 1.32;
+    }
+
+    /* =====================================================
+       FORMULARIO COMO PANEL INFERIOR
+       ===================================================== */
+
+    .sheet-backdrop {
+      position: absolute;
+      inset: 0;
+      z-index: 1200;
+      display: none;
+      background: rgba(17, 24, 39, 0.20);
+      backdrop-filter: blur(1px);
+    }
+
+    .sheet-backdrop.open {
+      display: block;
+    }
+
+    .bottom-sheet {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1300;
+      display: none;
+      max-height: calc(100dvh - 88px);
+      overflow-y: auto;
+      border-radius: 26px 26px 0 0;
+      background: var(--blanco);
+      box-shadow: 0 -22px 55px rgba(17, 24, 39, 0.30);
+      border: 1px solid rgba(255, 255, 255, 0.78);
+    }
+
+    .bottom-sheet.open {
+      display: block;
+    }
+
+    .sheet-handle {
+      width: 46px;
+      height: 5px;
+      margin: 10px auto 8px auto;
+      border-radius: 999px;
+      background: var(--gris-300);
+    }
+
+    .sheet-header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 6px 16px 14px 16px;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--gris-200);
+    }
+
+    .sheet-header h2 {
+      margin: 0;
+      color: var(--gris-900);
+      font-size: 18px;
+      font-weight: 950;
+      letter-spacing: -0.4px;
+    }
+
+    .sheet-header p {
+      margin: 4px 0 0 0;
+      color: var(--gris-500);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .close-sheet {
+      width: 38px;
+      height: 38px;
+      flex: 0 0 38px;
+      border: 0;
+      border-radius: 13px;
+      color: var(--rojo-oscuro);
+      background: var(--rojo-suave);
+      cursor: pointer;
+      font-weight: 950;
+      font-size: 18px;
+    }
+
+    form {
+      padding: 14px 12px 22px 12px;
+    }
+
+    .section {
+      margin-bottom: 16px;
+      padding: 14px;
+      overflow: hidden;
+      border-radius: 18px;
+      background: var(--blanco);
+      border: 1px solid rgba(209, 213, 219, 0.86);
+      box-shadow: var(--sombra-suave);
+    }
+
+    .section-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .section-title {
+      margin: 0;
+      color: var(--gris-900);
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: -0.2px;
+    }
+
+    .section-subtitle {
+      margin: 4px 0 0 0;
+      color: var(--gris-500);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .section-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: 0.35px;
+      color: var(--rojo-oscuro);
+      background: var(--rojo-suave);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 13px;
+      min-width: 0;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 12px;
+      font-weight: 850;
+      color: var(--gris-700);
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      min-height: 43px;
+      padding: 10px 12px;
+      border: 1px solid var(--gris-300);
+      border-radius: 13px;
+      font-size: 16px;
+      color: var(--gris-900);
+      background: var(--gris-50);
+      outline: none;
+    }
+
+    input[type="date"] {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 46px;
+      line-height: 1.2;
+      text-align: left;
+    }
+
+    input[readonly] {
+      background: #f1f5f9;
+      color: var(--gris-600);
+    }
+
+    textarea {
+      min-height: 92px;
+      resize: vertical;
+    }
+
+    .photo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .photo-card {
+      border: 1px solid var(--gris-200);
+      border-radius: 18px;
+      background: var(--gris-50);
+      overflow: hidden;
+    }
+
+    .photo-card-header {
+      padding: 13px 14px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      background: var(--blanco);
+      border-bottom: 1px solid var(--gris-200);
+    }
+
+    .photo-card-header strong {
+      font-size: 13px;
+      color: var(--gris-900);
+    }
+
+    .photo-card-header span {
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 10.5px;
+      font-weight: 850;
+      color: var(--rojo-oscuro);
+      background: var(--rojo-suave);
+    }
+
+    .photo-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      padding: 12px;
+    }
+
+    .input-file-oculto {
+      display: none;
+    }
+
+    .preview-wrap {
+      padding: 0 12px 12px 12px;
+    }
+
+    .preview {
+      width: 100%;
+      height: 180px;
+      display: none;
+      object-fit: cover;
+      border-radius: 15px;
+      border: 1px solid var(--gris-200);
+      box-shadow: 0 8px 18px rgba(17, 24, 39, 0.10);
+      background: var(--blanco);
+    }
+
+    .file-name {
+      min-height: 18px;
+      padding: 0 12px 12px 12px;
+      color: var(--gris-500);
+      font-size: 11.5px;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      min-height: 44px;
+      padding: 11px 14px;
+      border: 0;
+      border-radius: 14px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .btn-primary {
+      color: var(--blanco);
+      background: linear-gradient(135deg, var(--rojo-institucional), var(--rojo-profundo));
+      box-shadow: 0 10px 22px rgba(227, 28, 51, 0.25);
+    }
+
+    .btn-secondary {
+      color: var(--rojo-oscuro);
+      background: var(--rojo-suave);
+      border: 1px solid rgba(227, 28, 51, 0.20);
+    }
+
+    .btn-save {
+      width: 100%;
+      min-height: 52px;
+      margin-top: 8px;
+      font-size: 15px;
+    }
+
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.72;
+    }
+
+    #estado {
+      margin-top: 14px;
+      padding: 12px 13px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.35;
+      background: #eef2ff;
+      color: #312e81;
+      border: 1px solid #c7d2fe;
+    }
+
+    #estado.ok {
+      background: #ecfdf3;
+      color: #14532d;
+      border-color: #bbf7d0;
+    }
+
+    #estado.error {
+      background: #fef2f2;
+      color: #7f1d1d;
+      border-color: #fecaca;
+    }
+
+    #estado.loading {
+      background: #fff7ed;
+      color: #7c2d12;
+      border-color: #fed7aa;
+    }
+
+    .note {
+      margin-top: 10px;
+      color: var(--gris-500);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    /* =====================================================
+       MODAL ÉXITO
+       ===================================================== */
+
+    .success-modal {
+      position: absolute;
+      inset: 0;
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(17, 24, 39, 0.42);
+      backdrop-filter: blur(4px);
+    }
+
+    .success-modal.open {
+      display: flex;
+    }
+
+    .success-card {
+      width: min(420px, 100%);
+      padding: 22px;
+      border-radius: 24px;
+      background: var(--blanco);
+      box-shadow: var(--sombra-fuerte);
+      text-align: center;
+    }
+
+    .success-icon {
+      width: 62px;
+      height: 62px;
+      margin: 0 auto 14px auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      color: var(--blanco);
+      background: linear-gradient(135deg, var(--verde-ok), #15803d);
+      font-size: 30px;
+      font-weight: 950;
+      box-shadow: 0 12px 28px rgba(22, 163, 74, 0.28);
+    }
+
+    .success-card h2 {
+      margin: 0;
+      font-size: 21px;
+      color: var(--gris-900);
+      font-weight: 950;
+      letter-spacing: -0.4px;
+    }
+
+    .success-card p {
+      margin: 8px 0 17px 0;
+      color: var(--gris-500);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .success-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .leaflet-control-layers,
+    .leaflet-bar a {
+      border-radius: 12px;
+      box-shadow: 0 10px 24px rgba(17, 24, 39, 0.16);
+    }
+
+    .leaflet-control-zoom a {
+      color: var(--rojo-oscuro);
+      font-weight: 900;
+    }
+
+    @media (min-width: 820px) {
+      .topbar {
+        max-width: 520px;
+      }
+
+      .status-chip {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        width: min(620px, calc(100% - 24px));
+      }
+
+      .bottom-sheet {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        width: min(880px, calc(100% - 24px));
+      }
+
+      .mapbase-sheet {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        width: min(520px, calc(100% - 24px));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .grid,
+      .photo-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .photo-actions {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        padding: 10px 11px;
+      }
+
+      .topbar-text h1 {
+        font-size: 15px;
+      }
+
+      .topbar-text p {
+        font-size: 10.8px;
+      }
+
+      .map-tools {
+        top: calc(92px + env(safe-area-inset-top));
+      }
+
+      .success-actions {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="app">
+
+  <div id="map"></div>
+
+  <header class="topbar">
+    <div class="brand-mini">
+      <div class="brand-star star-a">★</div>
+      <div class="brand-star star-b">★</div>
+      <div class="brand-star star-c">★</div>
+      <div class="brand-letter">A</div>
+    </div>
+
+    <div class="topbar-text">
+      <h1>Recolección Web</h1>
+      <p>Acércate a la manzana y selecciona el punto para iniciar el registro.</p>
+    </div>
+  </header>
+
+  <div class="map-tools">
+    <button id="btnUbicacion" type="button" class="round-btn" title="Mi ubicación" onclick="activarUbicacionActual()">⌖</button>
+    <button type="button" class="round-btn" title="Vista inicial" onclick="volverVistaInicial()">⌂</button>
+    <button type="button" class="round-btn" title="Acercar al punto" onclick="acercarPuntoSeleccionado()">＋</button>
+    <button type="button" class="round-btn" title="Mapas base" onclick="abrirMapasBase()">▣</button>
+  </div>
+
+  <div id="mapBaseBackdrop" class="mapbase-backdrop" onclick="cerrarMapasBase()"></div>
+
+  <section id="mapBaseSheet" class="mapbase-sheet">
+    <div class="mapbase-handle"></div>
+
+    <div class="mapbase-header">
+      <div>
+        <h2>Mapas base</h2>
+        <p>Selecciona el mapa que quieres usar como referencia.</p>
+      </div>
+
+      <button type="button" class="mapbase-close" onclick="cerrarMapasBase()">×</button>
+    </div>
+
+    <div class="mapbase-list">
+      <button id="base_orto_bogota" type="button" class="mapbase-card active" onclick="seleccionarMapaBase('orto_bogota')">
+        <span class="mapbase-icon">◎</span>
+        <span class="mapbase-text">
+          <strong>Ortofoto Bogotá 2025</strong>
+          <small>Imagen oficial de Catastro Bogotá</small>
+        </span>
+        <span class="mapbase-check">✓</span>
+      </button>
+
+      <button id="base_esri" type="button" class="mapbase-card" onclick="seleccionarMapaBase('esri')">
+        <span class="mapbase-icon">◉</span>
+        <span class="mapbase-text">
+          <strong>Esri Satélite</strong>
+          <small>Imagen satelital de referencia</small>
+        </span>
+        <span class="mapbase-check">✓</span>
+      </button>
+
+      <button id="base_osm" type="button" class="mapbase-card" onclick="seleccionarMapaBase('osm')">
+        <span class="mapbase-icon">▤</span>
+        <span class="mapbase-text">
+          <strong>OpenStreetMap</strong>
+          <small>Mapa urbano y vial de referencia</small>
+        </span>
+        <span class="mapbase-check">✓</span>
+      </button>
+    </div>
+  </section>
+
+  <div id="loadingBadge" class="loading-badge">Cargando información del mapa...</div>
+
+  <div class="status-chip">
+    <div class="status-text">
+      <strong id="statusTitle">Selecciona una ubicación</strong>
+      <span id="statusSubtitle">Puedes tocar el mapa sin mover la vista; el botón de ubicación sí centra tu posición.</span>
+    </div>
+
+    <button id="btnAbrirFormulario" type="button" class="primary-map-btn" onclick="abrirFormulario()">
+      Continuar
+    </button>
+  </div>
+
+  <div id="sheetBackdrop" class="sheet-backdrop" onclick="cerrarFormulario()"></div>
+
+  <section id="formSheet" class="bottom-sheet">
+    <div class="sheet-handle"></div>
+
+    <div class="sheet-header">
+      <div>
+        <h2>Nuevo registro</h2>
+        <p>Completa la información del punto seleccionado.</p>
+      </div>
+
+      <button class="close-sheet" type="button" onclick="cerrarFormulario()">×</button>
+    </div>
+
+    <form id="formulario_recoleccion">
+
+      <section class="section">
+        <div class="section-title-row">
+          <div>
+            <h3 class="section-title">Información general</h3>
+            <p class="section-subtitle">Datos básicos del registro y responsable del levantamiento.</p>
+          </div>
+          <span class="section-chip">01</span>
+        </div>
+
+        <div class="grid">
+          <div class="field">
+            <label for="fecha">Fecha</label>
+            <input type="date" id="fecha">
+          </div>
+
+          <div class="field">
+            <label for="responsable">Responsable</label>
+            <input type="text" id="responsable" autocomplete="name" placeholder="Nombre del responsable">
+          </div>
+
+          <div class="field">
+            <label for="barrio">Barrio</label>
+            <input type="text" id="barrio" placeholder="Nombre del barrio">
+          </div>
+
+          <div class="field">
+            <label for="direccion">Dirección</label>
+            <input type="text" id="direccion" autocomplete="street-address" placeholder="Dirección o referencia">
+          </div>
+
+          <div class="field full">
+            <label for="tipo_de_accion">Tipo de acción</label>
+            <input type="text" id="tipo_de_accion" placeholder="Ej: mantenimiento, obra, reparación, visita técnica">
+          </div>
+
+          <div class="field full">
+            <label for="descripcion">Descripción</label>
+            <textarea id="descripcion" placeholder="Describe brevemente la situación encontrada o la actividad realizada"></textarea>
+          </div>
+
+          <div class="field">
+            <label for="prioridad">Prioridad</label>
+            <select id="prioridad">
+              <option value="">Seleccione...</option>
+              <option>Alta</option>
+              <option>Media</option>
+              <option>Baja</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="estado_obra">Estado</label>
+            <select id="estado_obra">
+              <option value="">Seleccione...</option>
+              <option>Pendiente</option>
+              <option>En proceso</option>
+              <option>Finalizado</option>
+              <option>Suspendido</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="dependencia_responsable">Dependencia responsable</label>
+            <input type="text" id="dependencia_responsable" placeholder="Dependencia o área">
+          </div>
+
+          <div class="field">
+            <label for="observacion">Observación</label>
+            <input type="text" id="observacion" placeholder="Observación adicional">
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-title-row">
+          <div>
+            <h3 class="section-title">Ubicación seleccionada</h3>
+            <p class="section-subtitle">Las coordenadas se generan desde el punto marcado en el mapa.</p>
+          </div>
+          <span class="section-chip">02</span>
+        </div>
+
+        <div class="grid">
+          <div class="field">
+            <label for="latitud">Latitud</label>
+            <input type="number" step="any" id="latitud" readonly>
+          </div>
+
+          <div class="field">
+            <label for="longitud">Longitud</label>
+            <input type="number" step="any" id="longitud" readonly>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-title-row">
+          <div>
+            <h3 class="section-title">Evidencia fotográfica</h3>
+            <p class="section-subtitle">Puedes tomar foto con cámara o seleccionar una imagen existente.</p>
+          </div>
+          <span class="section-chip">03</span>
+        </div>
+
+        <div class="photo-grid">
+
+          <div class="photo-card">
+            <div class="photo-card-header">
+              <strong>Foto antes</strong>
+              <span>Antes</span>
+            </div>
+
+            <div class="photo-actions">
+              <button type="button" class="btn btn-primary" onclick="abrirInputFoto('foto_antes_camara')">
+                📷 Tomar foto
+              </button>
+
+              <button type="button" class="btn btn-secondary" onclick="abrirInputFoto('foto_antes_archivo')">
+                ⬆ Subir archivo
+              </button>
+            </div>
+
+            <input class="input-file-oculto" type="file" id="foto_antes_camara" accept="image/*" capture="environment" onchange="seleccionarFoto(event, 'foto_antes')">
+            <input class="input-file-oculto" type="file" id="foto_antes_archivo" accept="image/*" onchange="seleccionarFoto(event, 'foto_antes')">
+
+            <div class="preview-wrap">
+              <img id="preview_antes" class="preview" alt="Vista previa foto antes">
+            </div>
+
+            <div id="nombre_foto_antes" class="file-name">Sin imagen seleccionada.</div>
+          </div>
+
+          <div class="photo-card">
+            <div class="photo-card-header">
+              <strong>Foto después</strong>
+              <span>Después</span>
+            </div>
+
+            <div class="photo-actions">
+              <button type="button" class="btn btn-primary" onclick="abrirInputFoto('foto_despues_camara')">
+                📷 Tomar foto
+              </button>
+
+              <button type="button" class="btn btn-secondary" onclick="abrirInputFoto('foto_despues_archivo')">
+                ⬆ Subir archivo
+              </button>
+            </div>
+
+            <input class="input-file-oculto" type="file" id="foto_despues_camara" accept="image/*" capture="environment" onchange="seleccionarFoto(event, 'foto_despues')">
+            <input class="input-file-oculto" type="file" id="foto_despues_archivo" accept="image/*" onchange="seleccionarFoto(event, 'foto_despues')">
+
+            <div class="preview-wrap">
+              <img id="preview_despues" class="preview" alt="Vista previa foto después">
+            </div>
+
+            <div id="nombre_foto_despues" class="file-name">Sin imagen seleccionada.</div>
+          </div>
+
+        </div>
+
+        <p class="note">Las imágenes se optimizan automáticamente antes de guardar el registro.</p>
+      </section>
+
+      <section class="section">
+        <button id="btnGuardar" type="button" class="btn btn-primary btn-save" onclick="guardarRegistro()">
+          Guardar registro
+        </button>
+
+        <div id="estado">Listo para registrar información.</div>
+      </section>
+
+    </form>
+  </section>
+
+  <div id="successModal" class="success-modal">
+    <div class="success-card">
+      <div class="success-icon">✓</div>
+      <h2>Tu información se registró con éxito</h2>
+      <p>El nuevo punto ya quedó guardado y se actualizará en el mapa para evitar duplicar registros.</p>
+
+      <div class="success-actions">
+        <button type="button" class="btn btn-primary" onclick="nuevoRegistro()">Llenar nuevo registro</button>
+        <button type="button" class="btn btn-secondary" onclick="verPuntoEnMapa()">Ver punto en el mapa</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+// =====================================================
+// CONFIGURACIÓN
+// =====================================================
+
+const VISTA_INICIAL = [4.58950572, -74.10444805];
+const ZOOM_INICIAL = 16;
+const ZOOM_DETALLE = 23;
+const MAX_ZOOM_MAPA = 25;
+
+const SUPABASE_URL = "https://jaczsrnblzbngzrdksqv.supabase.co";
+const SUPABASE_REST_URL = `${SUPABASE_URL}/rest/v1/`;
+
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImphY3pzcm5ibHpibmd6cmRrc3F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MTc4MTksImV4cCI6MjEwMjM5MzgxOX0.XjmE9j4tgmCUcE4045mN-Et096gP_vlm4iGTd5_mxm0";
+
+const BUCKET_FOTOS = "recoleccion-fotos";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const archivosSeleccionados = {
+  foto_antes: null,
+  foto_despues: null
+};
+
+let ultimaUbicacionGuardada = null;
+let ultimaUbicacionSeleccionada = null;
+
+
+// =====================================================
+// MAPA
+// =====================================================
+
+const map = L.map("map", {
+  zoomControl: true,
+  preferCanvas: true,
+  maxZoom: MAX_ZOOM_MAPA,
+  zoomSnap: 0.25,
+  zoomDelta: 0.5,
+  wheelPxPerZoomLevel: 60
+}).setView(VISTA_INICIAL, ZOOM_INICIAL);
+
+map.setMaxZoom(MAX_ZOOM_MAPA);
+
+crearPane("localidadPane", 420, false);
+crearPane("datosRecolectadosPane", 620, true);
+crearPane("ubicacionUsuarioPane", 760, true);
+crearPane("seleccionPane", 820, true);
+
+function crearPane(nombre, zIndex, interactivo) {
+  if (!map.getPane(nombre)) {
+    map.createPane(nombre);
+  }
+
+  map.getPane(nombre).style.zIndex = zIndex;
+  map.getPane(nombre).style.pointerEvents = interactivo ? "auto" : "none";
+}
+
+
+// =====================================================
+// MAPAS BASE
+// =====================================================
+
+const ortoBogota2025 = L.tileLayer.wms(
+  "https://serviciosgis.catastrobogota.gov.co/image/services/imagenesfunciones/orthourbana2025funcion/ImageServer/WMSServer",
+  {
+    layers: "orthourbana2025funcion:Stretch_SD",
+    format: "image/png",
+    transparent: false,
+    version: "1.3.0",
+    maxZoom: MAX_ZOOM_MAPA,
+    maxNativeZoom: 22,
+    tileSize: 256,
+    updateWhenZooming: false,
+    updateWhenIdle: true,
+    keepBuffer: 4,
+    attribution: "Ortofoto Bogotá 2025 - Catastro Bogotá"
+  }
+);
+
+const esriSatelite = L.tileLayer(
+  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+  {
+    maxZoom: MAX_ZOOM_MAPA,
+    maxNativeZoom: 19,
+    attribution: "Tiles © Esri"
+  }
+);
+
+const osm = L.tileLayer(
+  "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  {
+    maxZoom: MAX_ZOOM_MAPA,
+    maxNativeZoom: 19,
+    attribution: "© OpenStreetMap"
+  }
+);
+
+const mapasBase = {
+  orto_bogota: ortoBogota2025,
+  esri: esriSatelite,
+  osm: osm
+};
+
+let mapaBaseActivo = ortoBogota2025;
+mapaBaseActivo.addTo(map);
+
+function cambiarMapaBase(nombreMapa) {
+  const nuevoMapa = mapasBase[nombreMapa];
+
+  if (!nuevoMapa || nuevoMapa === mapaBaseActivo) {
+    cerrarMapasBase();
+    return;
+  }
+
+  map.removeLayer(mapaBaseActivo);
+  mapaBaseActivo = nuevoMapa;
+  mapaBaseActivo.addTo(map);
+
+  traerCapasPrincipalesAlFrente();
+  cerrarMapasBase();
+}
+
+function seleccionarMapaBase(nombreMapa) {
+  cambiarMapaBase(nombreMapa);
+
+  document.querySelectorAll(".mapbase-card").forEach(btn => {
+    btn.classList.remove("active");
+  });
+
+  const botonActivo = document.getElementById(`base_${nombreMapa}`);
+  if (botonActivo) {
+    botonActivo.classList.add("active");
+  }
+}
+
+function abrirMapasBase() {
+  document.getElementById("mapBaseBackdrop").classList.add("open");
+  document.getElementById("mapBaseSheet").classList.add("open");
+}
+
+function cerrarMapasBase() {
+  document.getElementById("mapBaseBackdrop").classList.remove("open");
+  document.getElementById("mapBaseSheet").classList.remove("open");
+}
+
+function volverVistaInicial() {
+  map.setView(VISTA_INICIAL, ZOOM_INICIAL);
+}
+
+function acercarPuntoSeleccionado() {
+  if (ultimaUbicacionSeleccionada) {
+    map.setView([ultimaUbicacionSeleccionada.lat, ultimaUbicacionSeleccionada.lon], ZOOM_DETALLE);
+  } else {
+    map.setZoom(MAX_ZOOM_MAPA);
+  }
+}
+
+
+// =====================================================
+// ÍCONOS
+// =====================================================
+
+const iconoSeleccion = L.divIcon({
+  className: "marker-selected",
+  html: `<div class="marker-selected-shadow"></div><div class="marker-selected-body"></div>`,
+  iconSize: [38, 38],
+  iconAnchor: [19, 34]
+});
+
+const iconoUsuario = L.divIcon({
+  className: "marker-user",
+  html: "",
+  iconSize: [22, 22],
+  iconAnchor: [11, 11]
+});
+
+const iconoRecolectado = L.divIcon({
+  className: "marker-recolectado",
+  html: "",
+  iconSize: [22, 22],
+  iconAnchor: [11, 11]
+});
+
+
+// =====================================================
+// CAPAS
+// =====================================================
+
+let localidadLayer = null;
+let datosRecolectadosLayer = null;
+let marcadorSeleccion = null;
+let marcadorUsuario = null;
+let circuloPrecision = null;
+let watchId = null;
+let seguimientoActivo = false;
+let centrarSiguienteGps = false;
+
+map.on("click", function(e) {
+  // Selección manual: NO recentra, NO cambia zoom, NO mueve la pantalla.
+  seleccionarUbicacion(e.latlng.lat, e.latlng.lng, false);
+});
+
+async function cargarCapasIniciales() {
+  mostrarCargando("Cargando información del mapa...");
+
+  await Promise.all([
+    cargarLocalidad(),
+    cargarDatosRecolectados()
+  ]);
+
+  ocultarCargando();
+  actualizarStatus("Selecciona una ubicación", "Puedes tocar el mapa sin mover la vista; el botón de ubicación sí centra tu posición.");
+}
+
+async function cargarLocalidad() {
+  try {
+    const datos = await consultarVista("v_localidad_web");
+    const features = datosAFeatures(datos);
+
+    if (features.length === 0) return;
+
+    if (localidadLayer) {
+      map.removeLayer(localidadLayer);
+    }
+
+    localidadLayer = L.geoJSON(
+      { type: "FeatureCollection", features },
+      {
+        pane: "localidadPane",
+        interactive: false,
+        style: {
+          color: "#ffc72c",
+          weight: 4,
+          opacity: 0.98,
+          dashArray: "10 7",
+          fillColor: "#ffc72c",
+          fillOpacity: 0.12
+        },
+        onEachFeature: function(feature, layer) {
+          const nombre = feature.properties?.locnombre || feature.properties?.nombre || "Localidad";
+
+          layer.bindTooltip(nombre, {
+            permanent: false,
+            direction: "center",
+            className: "localidad-label",
+            opacity: 1
+          });
+        }
+      }
+    ).addTo(map);
+
+  } catch (error) {
+    console.warn("Error cargando localidad:", error);
+  }
+}
+
+async function cargarDatosRecolectados() {
+  try {
+    const datos = await consultarVista("v_recoleccion_web");
+    const features = datosAFeatures(datos);
+
+    if (datosRecolectadosLayer) {
+      map.removeLayer(datosRecolectadosLayer);
+    }
+
+    datosRecolectadosLayer = L.geoJSON(
+      { type: "FeatureCollection", features },
+      {
+        pane: "datosRecolectadosPane",
+        pointToLayer: function(feature, latlng) {
+          return L.marker(latlng, {
+            icon: iconoRecolectado,
+            pane: "datosRecolectadosPane",
+            interactive: true
+          });
+        },
+        onEachFeature: function(feature, layer) {
+          layer.bindPopup(crearPopupRecolectado(feature.properties), {
+            maxWidth: 260
+          });
+        }
+      }
+    ).addTo(map);
+
+    traerCapasPrincipalesAlFrente();
+
+  } catch (error) {
+    console.warn("Error cargando datos recolectados:", error);
+  }
+}
+
+async function consultarVista(vista) {
+  const endpoint = `${SUPABASE_REST_URL}${vista}?select=*`;
+
+  const respuesta = await fetch(endpoint, {
+    cache: "no-store",
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      "Cache-Control": "no-cache"
+    }
+  });
+
+  const texto = await respuesta.text();
+
+  if (!respuesta.ok) {
+    throw new Error(texto);
+  }
+
+  return JSON.parse(texto);
+}
+
+function datosAFeatures(datos) {
+  const features = [];
+
+  datos.forEach(row => {
+    try {
+      let geom = row.geom;
+
+      if (!geom) return;
+
+      if (typeof geom === "string") {
+        geom = JSON.parse(geom);
+      }
+
+      if (!geom.type || !geom.coordinates) return;
+
+      features.push({
+        type: "Feature",
+        geometry: geom,
+        properties: row
+      });
+
+    } catch (error) {
+      console.warn("Error procesando geometría:", row, error);
+    }
+  });
+
+  return features;
+}
+
+function crearPopupRecolectado(propiedades) {
+  return `
+    <div class="popup-recolectado">
+      <h3>Datos recolectados</h3>
+      <p><strong>Fecha:</strong> ${escaparHTML(propiedades.fecha || "Sin fecha")}</p>
+      <p><strong>Responsable:</strong> ${escaparHTML(propiedades.responsable || "Sin responsable")}</p>
+      <p><strong>Barrio:</strong> ${escaparHTML(propiedades.barrio || "Sin barrio")}</p>
+      <p><strong>Tipo:</strong> ${escaparHTML(propiedades.tipo_de_accion || "Sin tipo de acción")}</p>
+      <p><strong>Estado:</strong> ${escaparHTML(propiedades.estado || "Sin estado")}</p>
+    </div>
+  `;
+}
+
+function traerCapasPrincipalesAlFrente() {
+  if (localidadLayer && map.hasLayer(localidadLayer)) localidadLayer.bringToFront();
+  if (datosRecolectadosLayer && map.hasLayer(datosRecolectadosLayer)) datosRecolectadosLayer.bringToFront();
+  if (circuloPrecision && map.hasLayer(circuloPrecision)) circuloPrecision.bringToFront();
+  if (marcadorUsuario && map.hasLayer(marcadorUsuario)) marcadorUsuario.setZIndexOffset(9000);
+  if (marcadorSeleccion && map.hasLayer(marcadorSeleccion)) marcadorSeleccion.setZIndexOffset(10000);
+}
+
+
+// =====================================================
+// UBICACIÓN
+// =====================================================
+
+function seleccionarUbicacion(lat, lon, centrar = false) {
+  ultimaUbicacionSeleccionada = { lat, lon };
+
+  document.getElementById("latitud").value = lat.toFixed(8);
+  document.getElementById("longitud").value = lon.toFixed(8);
+
+  if (marcadorSeleccion) {
+    marcadorSeleccion.setLatLng([lat, lon]);
+  } else {
+    marcadorSeleccion = L.marker([lat, lon], {
+      icon: iconoSeleccion,
+      pane: "seleccionPane",
+      draggable: true,
+      zIndexOffset: 10000
+    }).addTo(map);
+
+    marcadorSeleccion.on("dragend", function(event) {
+      const p = event.target.getLatLng();
+
+      // Arrastrar el marcador tampoco mueve la pantalla.
+      seleccionarUbicacion(p.lat, p.lng, false);
+    });
+  }
+
+  // Solo se centra cuando viene del botón "Mi ubicación".
+  // Al tocar el mapa se conserva exactamente el zoom y vista actual.
+  if (centrar === true) {
+    map.setView([lat, lon], Math.max(map.getZoom(), ZOOM_DETALLE), {
+      animate: true,
+      duration: 0.45
+    });
+  }
+
+  actualizarStatus("Ubicación seleccionada", `Lat ${lat.toFixed(6)}, Lon ${lon.toFixed(6)}`);
+  document.getElementById("btnAbrirFormulario").classList.add("ready");
+  traerCapasPrincipalesAlFrente();
+}
+
+function activarUbicacionActual() {
+  if (!navigator.geolocation) {
+    actualizarStatus("Ubicación no disponible", "El navegador no soporta geolocalización.");
+    return;
+  }
+
+  const btn = document.getElementById("btnUbicacion");
+  btn.classList.add("active");
+
+  actualizarStatus("Buscando tu ubicación", "Autoriza el permiso de ubicación en el navegador.");
+
+  // El primer punto GPS sí centra el mapa.
+  centrarSiguienteGps = true;
+
+  if (watchId !== null) {
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+  }
+
+  seguimientoActivo = true;
+
+  watchId = navigator.geolocation.watchPosition(
+    function(pos) {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      const precision = pos.coords.accuracy || 0;
+
+      actualizarMarcadorUsuario(lat, lon, precision);
+
+      seleccionarUbicacion(lat, lon, centrarSiguienteGps);
+
+      // Después de centrar una vez, el punto puede actualizarse sin mover la pantalla.
+      centrarSiguienteGps = false;
+
+      actualizarStatus("Ubicación actual detectada", `Precisión aproximada: ${precision.toFixed(0)} m`);
+    },
+    function(error) {
+      seguimientoActivo = false;
+      centrarSiguienteGps = false;
+      btn.classList.remove("active");
+      actualizarStatus("No se pudo obtener la ubicación", error.message);
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 20000,
+      maximumAge: 0
+    }
+  );
+}
+
+function actualizarMarcadorUsuario(lat, lon, precision) {
+  if (marcadorUsuario) {
+    marcadorUsuario.setLatLng([lat, lon]);
+  } else {
+    marcadorUsuario = L.marker([lat, lon], {
+      icon: iconoUsuario,
+      pane: "ubicacionUsuarioPane",
+      interactive: false,
+      zIndexOffset: 9000
+    }).addTo(map);
+  }
+
+  if (circuloPrecision) {
+    circuloPrecision.setLatLng([lat, lon]);
+    circuloPrecision.setRadius(precision);
+  } else {
+    circuloPrecision = L.circle([lat, lon], {
+      pane: "ubicacionUsuarioPane",
+      radius: precision,
+      color: "#2563eb",
+      weight: 1.5,
+      opacity: 0.85,
+      fillColor: "#2563eb",
+      fillOpacity: 0.12,
+      interactive: false
+    }).addTo(map);
+  }
+}
+
+function actualizarStatus(titulo, subtitulo) {
+  document.getElementById("statusTitle").innerHTML = titulo;
+  document.getElementById("statusSubtitle").innerHTML = subtitulo;
+}
+
+function mostrarCargando(texto) {
+  const badge = document.getElementById("loadingBadge");
+  badge.innerHTML = texto;
+  badge.classList.add("show");
+}
+
+function ocultarCargando() {
+  document.getElementById("loadingBadge").classList.remove("show");
+}
+
+
+// =====================================================
+// FORMULARIO
+// =====================================================
+
+function abrirFormulario() {
+  if (!ultimaUbicacionSeleccionada) {
+    actualizarStatus("Selecciona una ubicación", "Toca el mapa o usa el botón de ubicación actual.");
+    return;
+  }
+
+  document.getElementById("sheetBackdrop").classList.add("open");
+  document.getElementById("formSheet").classList.add("open");
+}
+
+function cerrarFormulario() {
+  document.getElementById("sheetBackdrop").classList.remove("open");
+  document.getElementById("formSheet").classList.remove("open");
+}
+
+
+// =====================================================
+// UTILIDADES
+// =====================================================
+
+function mensaje(texto, tipo = "") {
+  const div = document.getElementById("estado");
+  div.innerHTML = texto;
+  div.classList.remove("ok", "error", "loading");
+
+  if (tipo) div.classList.add(tipo);
+}
+
+function valor(id) {
+  return document.getElementById(id).value.trim();
+}
+
+function hoy() {
+  const d = new Date();
+  return d.toISOString().split("T")[0];
+}
+
+document.getElementById("fecha").value = hoy();
+
+function nombreArchivoSeguro(texto) {
+  return texto
+    .toLowerCase()
+    .replace(/[áàäâ]/g, "a")
+    .replace(/[éèëê]/g, "e")
+    .replace(/[íìïî]/g, "i")
+    .replace(/[óòöô]/g, "o")
+    .replace(/[úùüû]/g, "u")
+    .replace(/ñ/g, "n")
+    .replace(/[^a-z0-9_.-]/g, "_");
+}
+
+function escaparHTML(valor) {
+  if (valor === null || valor === undefined) return "";
+
+  return String(valor)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+
+// =====================================================
+// FOTOS
+// =====================================================
+
+function abrirInputFoto(inputId) {
+  document.getElementById(inputId).click();
+}
+
+function seleccionarFoto(event, tipoFoto) {
+  const input = event.target;
+
+  if (!input.files || input.files.length === 0) return;
+
+  const file = input.files[0];
+
+  if (!file.type.startsWith("image/")) {
+    mensaje("El archivo seleccionado no es una imagen.", "error");
+    return;
+  }
+
+  archivosSeleccionados[tipoFoto] = file;
+
+  const previewId = tipoFoto === "foto_antes" ? "preview_antes" : "preview_despues";
+  const nombreId = tipoFoto === "foto_antes" ? "nombre_foto_antes" : "nombre_foto_despues";
+
+  const preview = document.getElementById(previewId);
+  preview.src = URL.createObjectURL(file);
+  preview.style.display = "block";
+
+  document.getElementById(nombreId).innerHTML = file.name || "Imagen seleccionada.";
+  mensaje("Imagen seleccionada correctamente.", "ok");
+}
+
+async function comprimirImagen(file, maxAncho = 1600, calidad = 0.78) {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith("image/")) {
+      resolve(file);
+      return;
+    }
+
+    const img = new Image();
+
+    img.onload = function() {
+      let ancho = img.width;
+      let alto = img.height;
+
+      if (ancho > maxAncho) {
+        alto = Math.round((alto * maxAncho) / ancho);
+        ancho = maxAncho;
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = ancho;
+      canvas.height = alto;
+
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, ancho, alto);
+
+      canvas.toBlob(
+        blob => {
+          if (!blob) {
+            reject(new Error("No se pudo preparar la imagen."));
+            return;
+          }
+
+          const archivoComprimido = new File(
+            [blob],
+            file.name.replace(/\.[^/.]+$/, "") + ".jpg",
+            { type: "image/jpeg" }
+          );
+
+          resolve(archivoComprimido);
+        },
+        "image/jpeg",
+        calidad
+      );
+    };
+
+    img.onerror = function() {
+      reject(new Error("No se pudo leer la imagen. Selecciona una imagen JPG o PNG."));
+    };
+
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+async function subirFoto(tipoFoto) {
+  let archivo = archivosSeleccionados[tipoFoto];
+
+  if (!archivo) return null;
+
+  archivo = await comprimirImagen(archivo);
+
+  const nombreBase = `${Date.now()}_${crypto.randomUUID()}_${tipoFoto}.jpg`;
+  const ruta = `recoleccion_web/${hoy()}/${nombreArchivoSeguro(nombreBase)}`;
+
+  const { error } = await supabaseClient
+    .storage
+    .from(BUCKET_FOTOS)
+    .upload(ruta, archivo, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: "image/jpeg"
+    });
+
+  if (error) throw new Error(`No se pudo subir la fotografía. ${error.message}`);
+
+  const { data } = supabaseClient
+    .storage
+    .from(BUCKET_FOTOS)
+    .getPublicUrl(ruta);
+
+  return data.publicUrl;
+}
+
+
+// =====================================================
+// GUARDAR
+// =====================================================
+
+function validarRegistro() {
+  const latitud = valor("latitud");
+  const longitud = valor("longitud");
+
+  if (!latitud || !longitud) {
+    mensaje("Debes seleccionar una ubicación en el mapa.", "error");
+    return false;
+  }
+
+  if (Number.isNaN(parseFloat(latitud)) || Number.isNaN(parseFloat(longitud))) {
+    mensaje("Las coordenadas registradas no son válidas.", "error");
+    return false;
+  }
+
+  return true;
+}
+
+async function guardarRegistro() {
+  const btnGuardar = document.getElementById("btnGuardar");
+
+  try {
+    if (!validarRegistro()) return;
+
+    btnGuardar.disabled = true;
+    btnGuardar.innerHTML = "Guardando registro...";
+
+    mensaje("Subiendo fotografías...", "loading");
+
+    const fotoAntesUrl = await subirFoto("foto_antes");
+    const fotoDespuesUrl = await subirFoto("foto_despues");
+
+    mensaje("Guardando información...", "loading");
+
+    const registro = {
+      fecha: valor("fecha") || hoy(),
+      responsable: valor("responsable"),
+      barrio: valor("barrio"),
+      direccion: valor("direccion"),
+      tipo_de_accion: valor("tipo_de_accion"),
+      descripcion: valor("descripcion"),
+      prioridad: valor("prioridad"),
+      estado: valor("estado_obra"),
+      dependencia_responsable: valor("dependencia_responsable"),
+      observacion: valor("observacion"),
+      foto_antes_url: fotoAntesUrl,
+      foto_despues_url: fotoDespuesUrl,
+      latitud: parseFloat(valor("latitud")),
+      longitud: parseFloat(valor("longitud")),
+      fuente: "Formulario web"
+    };
+
+    const { data, error } = await supabaseClient
+      .from("recoleccion_web")
+      .insert([registro])
+      .select();
+
+    if (error) throw new Error(error.message);
+
+    ultimaUbicacionGuardada = {
+      lat: registro.latitud,
+      lon: registro.longitud
+    };
+
+    cerrarFormulario();
+    await cargarDatosRecolectados();
+    abrirMensajeExito();
+
+    console.log("Registro creado:", data);
+
+  } catch (error) {
+    console.error(error);
+    mensaje("No se pudo guardar la información. " + error.message, "error");
+  } finally {
+    btnGuardar.disabled = false;
+    btnGuardar.innerHTML = "Guardar registro";
+  }
+}
+
+function abrirMensajeExito() {
+  document.getElementById("successModal").classList.add("open");
+}
+
+function cerrarMensajeExito() {
+  document.getElementById("successModal").classList.remove("open");
+}
+
+function nuevoRegistro() {
+  cerrarMensajeExito();
+  limpiarFormulario();
+  actualizarStatus("Selecciona una ubicación", "Puedes tocar el mapa sin mover la vista; el botón de ubicación sí centra tu posición.");
+}
+
+function verPuntoEnMapa() {
+  cerrarMensajeExito();
+
+  if (ultimaUbicacionGuardada) {
+    map.setView([ultimaUbicacionGuardada.lat, ultimaUbicacionGuardada.lon], ZOOM_DETALLE);
+  }
+}
+
+function limpiarFormulario() {
+  document.getElementById("formulario_recoleccion").reset();
+  document.getElementById("fecha").value = hoy();
+
+  archivosSeleccionados.foto_antes = null;
+  archivosSeleccionados.foto_despues = null;
+
+  document.getElementById("preview_antes").style.display = "none";
+  document.getElementById("preview_antes").src = "";
+
+  document.getElementById("preview_despues").style.display = "none";
+  document.getElementById("preview_despues").src = "";
+
+  document.getElementById("nombre_foto_antes").innerHTML = "Sin imagen seleccionada.";
+  document.getElementById("nombre_foto_despues").innerHTML = "Sin imagen seleccionada.";
+
+  document.getElementById("latitud").value = "";
+  document.getElementById("longitud").value = "";
+
+  ultimaUbicacionSeleccionada = null;
+
+  if (marcadorSeleccion) {
+    map.removeLayer(marcadorSeleccion);
+    marcadorSeleccion = null;
+  }
+
+  document.getElementById("btnAbrirFormulario").classList.remove("ready");
+  mensaje("Listo para registrar información.", "");
+}
+
+
+// =====================================================
+// INICIO
+// =====================================================
+
+window.addEventListener("load", async function() {
+  volverVistaInicial();
+  await cargarCapasIniciales();
+});
+
+</script>
+
+</body>
+</html>
